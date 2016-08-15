@@ -1,13 +1,15 @@
 #! usr/bin/env python
 from scipy.interpolate import interp2d
 import numpy as np, re
-
+from IPython import embed
+import ipdb
 '''
     Python module used to accompany 21cmSense.
 '''
 
 def load_noise_files(files=None,verbose=False,polyfit_deg=3,
-    thermal_noise=True,kmax=None,kmin=None,num_ks=50):
+    thermal_noise=True,kmax=None,kmin=None,num_ks=50,
+    thresh=1e2,full=False):
     '''
     Loads input 21cmsense files and clips nans and infs
 
@@ -24,17 +26,20 @@ def load_noise_files(files=None,verbose=False,polyfit_deg=3,
     '''
 
     if files is None:
-        if verbose: print 'No files Input'
-        if verbose: print 'Exiting'
+        if verbose:
+            print 'No files Input'
+            print 'Exiting'
         return 0,'',''
 
     if not files:
         if verbose: print 'No Files Input'
         return 0,'',''
-
+    #freq flags in case polyfit doesn't agree with 21cmsense
+    fqs_flags=[]
     #wrap single files for iteration
-    flag=False
-    if len(np.shape(files)) ==0: files = [files]; flag=True
+    one_file_flag=False
+    if len(np.shape(files)) ==0: files = [files]; one_file_flag=True
+    if len(files) == 1: one_file_flag=True
     files.sort()
     re_f = re.compile('(\d+\.\d+)')#glob should load them in increasing freq order
 
@@ -44,32 +49,40 @@ def load_noise_files(files=None,verbose=False,polyfit_deg=3,
 
     for noisefile in files:
         #load thermal noise or sample variance noise
-        if thermal_noise: noise = np.load(noisefile)['T_errs']
-        else: noise = np.load(noisefile)['errs']
+        if thermal_noise: noise1 = np.load(noisefile)['T_errs']
+        else: noise1 = np.load(noisefile)['errs']
         noise_k = np.load(noisefile)['ks']
 
-        bad = np.logical_or(np.isinf(noise),np.isnan(noise))
-        noise = noise[np.logical_not(bad)]
+        bad = np.logical_or(np.isinf(noise1),np.isnan(noise1))
+        noise = noise1[np.logical_not(bad)]
         noise_k = noise_k[np.logical_not(bad)]
 
         #set up k range for re-gridding
-        if kmin is None: kmin = n.min(noise_k)
-        if kmax in None: kamx = n.max(noise_k)
+        #take smallest range available from either files or keywords
+        if kmin is None: kmin = np.min(noise_k)
+        if kmax is None: kmax = np.max(noise_k)
+
+
         nk_grid = np.linspace(kmin,kmax,num_ks)
 
         #keep only the points that fall in our desired k range
-        good_k = noise_k < nk_grid.max()
-        noise = noise[noise_k<nk_grid.max()]
-        noise_k = noise_k[noise_k<nk_grid.max()]
+        good_k = np.logical_or(noise_k <= nk_grid.max(),
+                    noise_k >= nk_grid.min())
+        noise = noise[good_k]
+        noise_k = noise_k[good_k]
 
         if verbose: print noisefile,np.max(noise),
 
         #regrid data by fitting polynomial then evaluating
         tmp_fit = np.polyfit(noise_k,noise,polyfit_deg)
-        noise = np.poly1d(tmp_fit)(nk_grid)
+        # ipdb.set_trace()
+        fqs_flags.append(np.logical_not(
+            np.sqrt(np.mean((noise - np.poly1d(tmp_fit)(noise_k))**2)) <= thresh
+            )) #flags fits whose rms is above the threshold.
 
+        noise = np.poly1d(tmp_fit)(nk_grid)
         noise[ np.logical_or(nk_grid < noise_k.min()
-            , nk_grid> noise_k.max())] = np.NaN #Nan regions outside of k-range
+             , nk_grid> noise_k.max())] = np.NaN #Nan regions outside of k-range
 
         noises.append(noise)
         noise_ks.append(nk_grid)
@@ -80,11 +93,25 @@ def load_noise_files(files=None,verbose=False,polyfit_deg=3,
         noise_freqs.append(f)
 
     noises = np.ma.masked_invalid(noises)
-    if flag:
+    if one_file_flag:
         noise_freqs = np.squeeze(noise_freqs)
         noise_ks = np.squeeze(noise_ks)
         noises = np.squeeze(noises)
-    return noise_freqs, noise_ks, noises
+        fqs_flags = fqs_flags[0]
+        if fqs_flags:
+            if full: return 0,'','',fqs_flags
+            else: return 0,'',''
+        else:
+            return noise_freqs, noise_ks, noises
+
+    if full: return noise_freqs, noise_ks, noises, fqs_flags
+    else:
+        ### This is really messy but I am having a hard time consolidating it  nicely ###
+        noise_freqs =np.array(noise_freqs)[np.array(np.logical_not(fqs_flags))].squeeze().tolist()
+        noise_ks =np.array(noise_ks)[np.array(np.logical_not(fqs_flags))].squeeze().tolist()
+        noises =np.array(noises)[np.array(np.logical_not(fqs_flags))].squeeze().tolist()
+        return noise_freqs, noise_ks, noises
+    # return noise_freqs, noise_ks, noises
 
 
 def noise_interp2d(noise_freqs=None,noise_ks=None,noises=None,
@@ -92,6 +119,7 @@ def noise_interp2d(noise_freqs=None,noise_ks=None,noises=None,
     '''
     Builds 2d interpolator from loaded data, default interpolation: linear
     interpolator inputs  frequency (in MHz), k (in hMpci)
+    returns lambda fucntion which automatically Masks NaN and 0 values in noise array
     '''
     if noise_freqs is None:
         if verbose: print 'Must Supply frequency values'
@@ -126,7 +154,7 @@ def noise_interp2d(noise_freqs=None,noise_ks=None,noises=None,
     noise_interp = interp2d(NF1, NK1, noises_interp1, kind=interp_kind,
             fill_value=np.NaN ,**kwargs)
 
-    return noise_interp
+    return lambda x,y: np.ma.masked_equal( np.ma.masked_invalid( noise_interp(x,y)).squeeze(), 0)
 
 def masked_noise(noise_interp,freqs,ks):
     '''

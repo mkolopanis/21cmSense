@@ -23,9 +23,11 @@ class TestUtils(TestCase):
 
     def test_load_ks(self):
         test_file = 'test_data/test_load_k_0.114.npz'
-        ref_ks = np.linspace(0,1)*.5 + .01
+        ref_ks = np.linspace(.1,.3,50)
+        print test_file
         _,out_k,_ = py21cm.utils.load_noise_files(
                 os.path.join(self.path,test_file))
+        print out_k
         self.assertTrue(np.allclose(ref_ks,out_k))
 
     def test_load_freq(self):
@@ -37,22 +39,19 @@ class TestUtils(TestCase):
 
     def test_load_noise(self):
         test_file= 'test_data/test_load_k_0.114.npz'
-        ref_noise = [ 1.753, 1.54011634,  1.36467456,  1.22454969,
-                1.11761678,  1.04175086,  0.99482696 , 0.97472012,
-                0.97930537,  1.00645774,  1.05405228,  1.11996402,
-                1.20206799,  1.29823923,  1.40635277,  1.52428365,
-                1.6499069,   1.78109756, 1.91573066,  2.05168125,
-                2.18682434,  2.31903499,  2.44618821 , 2.56615906,
-                2.67682256,  2.77605374,  2.86172766,  2.93171933,
-                2.98390379,  3.01615608, 3.02635124,  3.0123643,
-                2.97207029,  2.90334424,  2.80406121,  2.67209621,
-                2.50532429,  2.30162047,  2.0588598,   1.77491731,
-                1.44766804,  1.07498701,  0.65474927,  0.18482985,
-                -0.33689622, -0.91255389, -1.54426815, -2.23416394,
-                -2.98436623, -3.797     ]
+        ref_noise = np.poly1d(np.polyfit([.1,.2,.3],[1,2,3],3))(np.linspace(.1,.3,50))
         _,_,out_noise = py21cm.utils.load_noise_files(
                 os.path.join(self.path,test_file))
+        # print out_noise
+        # print np.load(os.path.join(self.path,test_file))['T_errs']
         self.assertTrue(np.allclose(ref_noise,out_noise))
+
+    def test_flag_bad(self):
+        test_file = 'test_data/test_data_0.180.npz'
+        _,_,_,flags = py21cm.utils.load_noise_files(
+            os.path.join(self.path,test_file),full=True
+            )
+        self.assertTrue(flags)
 
 class TestInterp(TestCase):
 
@@ -89,7 +88,7 @@ class TestInterp(TestCase):
     def test_interp_linear(self):
         out_interp=py21cm.utils.noise_interp2d([114,115],[[.1,.2],[.1,.2]],[[1,1],[2,2]])
         ref_num = 1.5
-        out_num = out_interp(.15,114.5)
+        out_num = out_interp(114.5,.15)
         self.assertEqual(ref_num,out_num)
 
 if __name__ == '__main__':
