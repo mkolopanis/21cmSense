@@ -91,12 +91,12 @@ def load_noise_files(files=None,verbose=False,polyfit_deg=3,
         f = float(re_f.match(small_name).groups()[0])*1e3 #sensitivity freq in MHz
         if verbose: print f
         noise_freqs.append(f)
-
+        
     noises = np.ma.masked_invalid(noises)
     if one_file_flag:
-        noise_freqs = np.squeeze(noise_freqs)
-        noise_ks = np.squeeze(noise_ks)
-        noises = np.squeeze(noises)
+        # noise_freqs = np.squeeze(noise_freqs)
+        # noise_ks = np.squeeze(noise_ks)
+        # noises = np.squeeze(noises)
         fqs_flags = fqs_flags[0]
         if fqs_flags:
             if full: return 0,'','',fqs_flags
@@ -107,9 +107,9 @@ def load_noise_files(files=None,verbose=False,polyfit_deg=3,
     if full: return noise_freqs, noise_ks, noises, fqs_flags
     else:
         ### This is really messy but I am having a hard time consolidating it  nicely ###
-        noise_freqs =np.array(noise_freqs)[np.array(np.logical_not(fqs_flags))].squeeze().tolist()
-        noise_ks =np.array(noise_ks)[np.array(np.logical_not(fqs_flags))].squeeze().tolist()
-        noises =np.array(noises)[np.array(np.logical_not(fqs_flags))].squeeze().tolist()
+        noise_freqs =np.array(noise_freqs)[np.array(np.logical_not(fqs_flags))].tolist()
+        noise_ks =np.array(noise_ks)[np.array(np.logical_not(fqs_flags))].tolist()
+        noises =np.array(noises)[np.array(np.logical_not(fqs_flags))].tolist()
         return noise_freqs, noise_ks, noises
     # return noise_freqs, noise_ks, noises
 
