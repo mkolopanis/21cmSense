@@ -8,11 +8,13 @@ class TestUtils(TestCase):
 
     def setUp(self):
         self.path = os.path.dirname(os.path.realpath(__file__))
+        self.test_file = 'test_data/test_load_k_0.114.npz'
         pass
 
     def tearDown(self):
         pass
-
+    def test_test_file(self):
+        self.assertTrue(os.path.exists(os.path.join(self.path,self.test_file)))
     def test_load_no_files(self):
         out_f,_,_ = py21cm.utils.load_noise_files(None)
         self.assertEqual(0,out_f)
@@ -22,21 +24,23 @@ class TestUtils(TestCase):
         self.assertEqual(0,out_f)
 
     def test_load_ks(self):
-        test_file = 'test_data/test_load_k_0.114.npz'
+        #self.test_file = 'test_data/test_load_k_0.114.npz'
         ref_ks = np.linspace(0,1)*.5 + .01
         _,out_k,_ = py21cm.utils.load_noise_files(
-                os.path.join(self.path,test_file))
+                os.path.join(self.path,self.test_file))
+        print ref_ks
+        print out_k
         self.assertTrue(np.allclose(ref_ks,out_k))
 
     def test_load_freq(self):
-        test_file = 'test_data/test_load_k_0.114.npz'
+        #self.test_file = 'test_data/test_load_k_0.114.npz'
         ref_freq=114
         out_freq,_,_ = py21cm.utils.load_noise_files(
-                os.path.join(self.path,test_file))
+                os.path.join(self.path,self.test_file))
         self.assertEqual(ref_freq,out_freq)
 
     def test_load_noise(self):
-        test_file= 'test_data/test_load_k_0.114.npz'
+        #test_file= 'test_data/test_load_k_0.114.npz'
         ref_noise = [ 1.753, 1.54011634,  1.36467456,  1.22454969,
                 1.11761678,  1.04175086,  0.99482696 , 0.97472012,
                 0.97930537,  1.00645774,  1.05405228,  1.11996402,
@@ -51,7 +55,7 @@ class TestUtils(TestCase):
                 -0.33689622, -0.91255389, -1.54426815, -2.23416394,
                 -2.98436623, -3.797     ]
         _,_,out_noise = py21cm.utils.load_noise_files(
-                os.path.join(self.path,test_file))
+                os.path.join(self.path,self.test_file))
         self.assertTrue(np.allclose(ref_noise,out_noise))
 
 class TestInterp(TestCase):
