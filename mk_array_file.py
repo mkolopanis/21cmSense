@@ -13,7 +13,7 @@ o.add_option('--track', dest='track', default=None, type=float,
 o.add_option('--bl_min', dest='bl_min', default=0., type=float,
     help="Set the minimum baseline (in meters) to include in the uv plane.")
 o.add_option('--bl_max', dest='bl_max', default=None, type=float,
-    help="Set the maximum baseline (in meters) to include in the uv plane.  Use to exclude outriggers with little EoR sensitivity to speed up calculation.") 
+    help="Set the maximum baseline (in meters) to include in the uv plane.  Use to exclude outriggers with little EoR sensitivity to speed up calculation.")
 opts, args = o.parse_args(sys.argv[1:])
 
 #============================SIMPLE GRIDDING FUNCTION=======================
@@ -24,7 +24,7 @@ def beamgridder(xcen,ycen,size):
     xcen += cen
     ycen = -1*ycen + cen
     beam = n.zeros((size,size))
-    if round(ycen) > size - 1 or round(xcen) > size - 1 or ycen < 0. or xcen <0.: 
+    if round(ycen) > size - 1 or round(xcen) > size - 1 or ycen < 0. or xcen <0.:
         return beam
     else:
         beam[round(ycen),round(xcen)] = 1. #single pixel gridder
@@ -41,6 +41,7 @@ if opts.track:
     name = prms['name']+'track_%.1fhr' % opts.track
 else:
     obs_duration = prms['obs_duration']
+    print "obs_duration = ",obs_duration
     name = prms['name']+'drift'; print name
 dish_size_in_lambda = prms['dish_size_in_lambda']
 
@@ -67,7 +68,7 @@ cat = a.src.get_catalog(opts.cal,'z') #create zenith source object
 aa.set_jultime(cen_jd)
 obs_lst = aa.sidereal_time()
 obs_zen = a.phs.RadioFixedBody(obs_lst,aa.lat)
-obs_zen.compute(aa) #observation is phased to zenith of the center time of the drift 
+obs_zen.compute(aa) #observation is phased to zenith of the center time of the drift
 
 #find redundant baselines
 bl_len_min = opts.bl_min / (a.const.c/(fq*1e11)) #converts meters to lambda
@@ -81,13 +82,14 @@ for i in xrange(nants):
         if bl_len > bl_len_max: bl_len_max = bl_len
         if bl_len < bl_len_min: continue
         uvbin = '%.1f,%.1f' % (u,v)
+        if uvbin not in ['-15.0,0.0','15.0,0.0','-15.0,-0.0','15.0,-0.0']: continue
         cnt +=1
         if not uvbins.has_key(uvbin): uvbins[uvbin] = ['%i,%i' % (i,j)]
         else: uvbins[uvbin].append('%i,%i' % (i,j))
 print 'There are %i baseline types' % len(uvbins.keys())
 
 print 'The longest baseline is %.2f meters' % (bl_len_max*(a.const.c/(fq*1e11))) #1e11 converts from GHz to cm
-if opts.bl_max: 
+if opts.bl_max:
     bl_len_max = opts.bl_max / (a.const.c/(fq*1e11)) #units of wavelength
     print 'The longest baseline being included is %.2f m' % (bl_len_max*(a.const.c/(fq*1e11)))
 
@@ -113,7 +115,7 @@ for cnt, uvbin in enumerate(uvbins):
 
 quadsum = quadsum**.5
 
-print "Saving file as %s_blmin%0.f_blmax%0.f_arrayfile.npz" % (name, bl_len_min, bl_len_max) 
+print "Saving file as %s_blmin%0.f_blmax%0.f_arrayfile.npz" % (name, bl_len_min, bl_len_max)
 
 n.savez('%s_blmin%0.f_blmax%0.f_arrayfile.npz' % (name, bl_len_min, bl_len_max),
 uv_coverage = uvsum,
