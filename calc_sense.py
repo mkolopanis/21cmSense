@@ -4,7 +4,7 @@ Calculates the expected sensitivity of a 21cm experiment to a given 21cm power s
 '''
 import aipy as a, numpy as n, optparse, sys
 from scipy import interpolate
-
+import ipdb
 o = optparse.OptionParser()
 o.set_usage('calc_sense.py [options] *.npz')
 o.set_description(__doc__)
@@ -14,7 +14,7 @@ o.add_option('-b', '--buff', dest='buff', default=0.1, type=float,
     help="The size of the additive buffer outside the horizon to exclude in the pessimistic and moderate models.")
 o.add_option('-f', '--freq', dest='freq', default=.135, type=float,
     help="The center frequency of the observation in GHz.  If you change from the default, be sure to use a sensible power spectrum model from that redshift.  Note that many values in the code are calculated relative to .150 GHz and are not affected by changing this value.")
-o.add_option('--eor', dest='eor', default='ps_no_halos_nf0.521457_z9.50_useTs0_zetaX-1.0e+00_200_400Mpc_v2',
+o.add_option('--eor', dest='eor', default='/home/mkolopanis/psa64/src/21cmSense/ps_no_halos_nf0.521457_z9.50_useTs0_zetaX-1.0e+00_200_400Mpc_v2',
     help="The model epoch of reionization power spectrum.  The code is built to handle output power spectra from 21cmFAST.")
 o.add_option('--ndays', dest='ndays', default=180., type=float,
     help="The total number of days observed.  The default is 180, which is the maximum a particular R.A. can be observed in one year if one only observes at night.  The total observing time is ndays*n_per_day.")
@@ -158,7 +158,10 @@ for iu,iv in zip(nonzero[1], nonzero[0]):
 
 #bin the result in 1D
 delta = dk_deta(z)*(1./B) #default bin size is given by bandwidth
-kmag = n.arange(delta,n.max(mk),delta)
+#kmag = n.arange(delta,n.max(mk),delta)
+kmag = n.arange(n.min(mk),n.max(mk),delta)
+
+#ipdb.set_trace()
 
 kprs = n.array(kprs)
 sense1d = n.zeros_like(kmag)
