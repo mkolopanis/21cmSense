@@ -82,15 +82,15 @@ else:
 
 h = 0.7
 B = opts.bwidth
-z = f2z(opts.freq)
+z = f2z(array['freq'])
 
-dish_size_in_lambda = dish_size_in_lambda*(opts.freq/.150) # linear frequency evolution, relative to 150 MHz
+dish_size_in_lambda = dish_size_in_lambda*(array['freq']/.150) # linear frequency evolution, relative to 150 MHz
 first_null = 1.22/dish_size_in_lambda #for an airy disk, even though beam model is Gaussian
 bm = 1.13*(2.35*(0.45/dish_size_in_lambda))**2
 nchan = opts.nchan
 kpls = dk_deta(z) * n.fft.fftfreq(nchan,B/nchan)
 
-Tsky = 60e3 * (3e8/(opts.freq*1e9))**2.55  # sky temperature in mK
+Tsky = 60e3 * (3e8/(array['freq']*1e9))**2.55  # sky temperature in mK
 n_lstbins = opts.n_per_day*60./obs_duration
 
 #===============================EOR MODEL===================================
@@ -122,8 +122,6 @@ uv_coverage[:,:SIZE/2] = 0.
 uv_coverage[SIZE/2:,SIZE/2] = 0.
 if opts.no_ns: uv_coverage[:,SIZE/2] = 0.
 
-
-
 #loop over uv_coverage to calculate k_pr
 nonzero = n.where(uv_coverage > 0)
 for iu,iv in zip(nonzero[1], nonzero[0]):
@@ -132,8 +130,8 @@ for iu,iv in zip(nonzero[1], nonzero[0]):
    kpr = umag * dk_du(z)
    kprs.append(kpr)
    #calculate horizon limit for baseline of length umag
-   if opts.model in ['mod','pess']: hor = dk_deta(z) * umag/opts.freq + opts.buff
-   elif opts.model in ['opt']: hor = dk_deta(z) * (umag/opts.freq)*n.sin(first_null/2)
+   if opts.model in ['mod','pess']: hor = dk_deta(z) * umag/array['freq'] + opts.buff
+   elif opts.model in ['opt']: hor = dk_deta(z) * (umag/array['freq'])*n.sin(first_null/2)
    else: print '%s is not a valid foreground model; Aborting...' % opts.model; sys.exit()
    if not sense.has_key(kpr): 
        sense[kpr] = n.zeros_like(kpls)
@@ -183,7 +181,7 @@ for ind,kbin in enumerate(sense1d):
     Tsense1d[ind] = Tsense1d[ind]**-.5
 
 #save results to output npz
-n.savez('%s_%s_%.3f.npz' % (name,opts.model,opts.freq),ks=kmag,errs=sense1d,T_errs=Tsense1d)
+n.savez('%s_%s_%.3f.npz' % (name,opts.model,array['freq']),ks=kmag,errs=sense1d,T_errs=Tsense1d)
 
 #calculate significance with least-squares fit of amplitude
 A = p21(kmag)
