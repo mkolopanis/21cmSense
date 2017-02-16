@@ -95,7 +95,7 @@ class AntennaArray(a.pol.AntennaArray):
 prms = {
     'name': os.path.basename(__file__)[:-3], #remove .py from filename
     'loc': ('-30:43:17.5', '21:25:41.9'), # KAT, SA (GPS)
-    'dish_size_in_lambda' : 0.82, #in units of wavelengths at 150 MHz = 2 meters
+    'dish_size_in_lambda' : 1.16, #in units of wavelengths at 150 MHz = 2 meters
     'Trx' : 200e3, #receiver temp in mK
     'antpos': {
         49: {'top_x':    0.0,  'top_y':    0.0,  'top_z':    0.0},
