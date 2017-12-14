@@ -4,7 +4,7 @@ Calculates the expected sensitivity of a 21cm experiment to a given 21cm power s
 '''
 import aipy as a, numpy as n, optparse, sys
 from scipy import interpolate
-
+import ipdb
 o = optparse.OptionParser()
 o.set_usage('calc_sense.py [options] *.npz')
 o.set_description(__doc__)
@@ -14,7 +14,7 @@ o.add_option('-b', '--buff', dest='buff', default=0.1, type=float,
     help="The size of the additive buffer outside the horizon to exclude in the pessimistic and moderate models.")
 o.add_option('-f', '--freq', dest='freq', default=.135, type=float,
     help="The center frequency of the observation in GHz.  If you change from the default, be sure to use a sensible power spectrum model from that redshift.  Note that many values in the code are calculated relative to .150 GHz and are not affected by changing this value.")
-o.add_option('--eor', dest='eor', default='ps_no_halos_nf0.521457_z9.50_useTs0_zetaX-1.0e+00_200_400Mpc_v2',
+o.add_option('--eor', dest='eor', default='/home/mkolopanis/psa64/src/21cmSense/ps_no_halos_nf0.521457_z9.50_useTs0_zetaX-1.0e+00_200_400Mpc_v2',
     help="The model epoch of reionization power spectrum.  The code is built to handle output power spectra from 21cmFAST.")
 o.add_option('--ndays', dest='ndays', default=180., type=float,
     help="The total number of days observed.  The default is 180, which is the maximum a particular R.A. can be observed in one year if one only observes at night.  The total observing time is ndays*n_per_day.")
@@ -82,15 +82,15 @@ else:
 
 h = 0.7
 B = opts.bwidth
-z = f2z(opts.freq)
+z = f2z(array['freq'])
 
-dish_size_in_lambda = dish_size_in_lambda*(opts.freq/.150) # linear frequency evolution, relative to 150 MHz
+dish_size_in_lambda = dish_size_in_lambda*(array['freq']/.150) # linear frequency evolution, relative to 150 MHz
 first_null = 1.22/dish_size_in_lambda #for an airy disk, even though beam model is Gaussian
 bm = 1.13*(2.35*(0.45/dish_size_in_lambda))**2
 nchan = opts.nchan
 kpls = dk_deta(z) * n.fft.fftfreq(nchan,B/nchan)
 
-Tsky = 60e3 * (3e8/(opts.freq*1e9))**2.55  # sky temperature in mK
+Tsky = 60e3 * (3e8/(array['freq']*1e9))**2.55  # sky temperature in mK
 n_lstbins = opts.n_per_day*60./obs_duration
 
 #===============================EOR MODEL===================================
@@ -122,8 +122,6 @@ uv_coverage[:,:SIZE/2] = 0.
 uv_coverage[SIZE/2:,SIZE/2] = 0.
 if opts.no_ns: uv_coverage[:,SIZE/2] = 0.
 
-
-
 #loop over uv_coverage to calculate k_pr
 nonzero = n.where(uv_coverage > 0)
 for iu,iv in zip(nonzero[1], nonzero[0]):
@@ -132,8 +130,8 @@ for iu,iv in zip(nonzero[1], nonzero[0]):
    kpr = umag * dk_du(z)
    kprs.append(kpr)
    #calculate horizon limit for baseline of length umag
-   if opts.model in ['mod','pess']: hor = dk_deta(z) * umag/opts.freq + opts.buff
-   elif opts.model in ['opt']: hor = dk_deta(z) * (umag/opts.freq)*n.sin(first_null/2)
+   if opts.model in ['mod','pess']: hor = dk_deta(z) * umag/array['freq'] + opts.buff
+   elif opts.model in ['opt']: hor = dk_deta(z) * (umag/array['freq'])*n.sin(first_null/2)
    else: print '%s is not a valid foreground model; Aborting...' % opts.model; sys.exit()
    if not sense.has_key(kpr): 
        sense[kpr] = n.zeros_like(kpls)
@@ -158,7 +156,10 @@ for iu,iv in zip(nonzero[1], nonzero[0]):
 
 #bin the result in 1D
 delta = dk_deta(z)*(1./B) #default bin size is given by bandwidth
-kmag = n.arange(delta,n.max(mk),delta)
+#kmag = n.arange(delta,n.max(mk),delta)
+kmag = n.arange(n.min(mk),n.max(mk),delta)
+
+#ipdb.set_trace()
 
 kprs = n.array(kprs)
 sense1d = n.zeros_like(kmag)
