@@ -53,8 +53,8 @@ def load_noise_files(files=None,verbose=False,polyfit_deg=3,
         noise_k = noise_k[np.logical_not(bad)]
 
         #set up k range for re-gridding
-        if kmin is None: kmin = n.min(noise_k)
-        if kmax in None: kamx = n.max(noise_k)
+        if kmin is None: kmin = np.min(noise_k)
+        if kmax is None: kmax = np.max(noise_k)
         nk_grid = np.linspace(kmin,kmax,num_ks)
 
         #keep only the points that fall in our desired k range
@@ -65,21 +65,23 @@ def load_noise_files(files=None,verbose=False,polyfit_deg=3,
         if verbose: print noisefile,np.max(noise),
 
         #regrid data by fitting polynomial then evaluating
-        tmp_fit = np.polyfit(noise_k,noise,polyfit_deg)
-        noise = np.poly1d(tmp_fit)(nk_grid)
+        #tmp_fit = np.polyfit(noise_k,noise,polyfit_deg)
+        #noise = np.poly1d(tmp_fit)(nk_grid)
 
-        noise[ np.logical_or(nk_grid < noise_k.min()
-            , nk_grid> noise_k.max())] = np.NaN #Nan regions outside of k-range
+        #noise[ np.logical_or(nk_grid < noise_k.min()
+        #    , nk_grid> noise_k.max())] = np.NaN #Nan regions outside of k-range
 
         noises.append(noise)
-        noise_ks.append(nk_grid)
+        #noise_ks.append(nk_grid)
+        noise_ks.append(noise_k)
 
         small_name = noisefile.split('/')[-1].split('.npz')[0].split('_')[-1]
         f = float(re_f.match(small_name).groups()[0])*1e3 #sensitivity freq in MHz
         if verbose: print f
         noise_freqs.append(f)
 
-    noises = np.ma.masked_invalid(noises)
+    #from IPython import embed; embed()
+    #noises = np.ma.masked_invalid(noises)
     if flag:
         noise_freqs = np.squeeze(noise_freqs)
         noise_ks = np.squeeze(noise_ks)
